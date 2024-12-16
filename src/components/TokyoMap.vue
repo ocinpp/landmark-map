@@ -141,7 +141,10 @@ const togglePopups = (zoomLevel) => {
 };
 
 onMounted(() => {
-  map.value = L.map("map").setView([35.6762, 139.6503], 11);
+  map.value = L.map("map", { closePopupOnClick: false }).setView(
+    [35.6762, 139.6503],
+    11
+  );
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution:
@@ -164,17 +167,19 @@ onMounted(() => {
     marker.bindPopup(popupContent, {
       maxWidth: 300,
       className: "custom-popup",
-      autoClose: false,
+      closeOnClick: false,
+      autoClose: true,
+      closeButton: true,
     });
 
     markers.value.push(marker);
   });
 
   // Add zoom event listener
-  map.value.on("zoomend", () => {
-    const currentZoom = map.value.getZoom();
-    togglePopups(currentZoom);
-  });
+  // map.value.on("zoomend", () => {
+  //   const currentZoom = map.value.getZoom();
+  //   togglePopups(currentZoom);
+  // });
 
   window.addEventListener("resize", handleResize);
 });
