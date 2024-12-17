@@ -3,19 +3,19 @@
     <div class="h-16 bg-gray-800 flex items-center justify-center">
       <h1 class="text-white text-2xl font-bold">Tokyo Landmarks</h1>
     </div>
-    <div class="flex-grow relative flex">
+    <div class="flex-grow relative flex overflow-hidden">
       <!-- Sidebar container -->
       <div
         :class="[
-          'transition-all duration-300 ease-in-out z-[1100] flex',
+          'transition-all duration-300 ease-in-out z-[1100] flex h-full',
           isSidebarOpen ? 'w-64' : 'w-8',
         ]"
       >
         <!-- Sidebar content -->
         <div
           :class="[
-            'h-full bg-white shadow-lg overflow-y-auto',
-            isSidebarOpen ? 'w-full' : 'w-8',
+            'h-full bg-white shadow-lg overflow-y-auto flex-shrink-0',
+            isSidebarOpen ? 'w-64' : 'w-8',
           ]"
         >
           <div v-if="isSidebarOpen">
@@ -50,9 +50,7 @@
           @click="toggleSidebar"
           :class="[
             'absolute top-2 z-[1101] bg-white p-2 rounded-md shadow-md',
-            isSidebarOpen
-              ? 'right-0 translate-x-full rounded-l-none'
-              : 'left-2',
+            isSidebarOpen ? 'left-[248px]' : 'left-2',
           ]"
           aria-label="Toggle sidebar"
         >
@@ -62,7 +60,7 @@
       </div>
 
       <!-- Map container -->
-      <div class="flex-grow relative">
+      <div class="flex-grow relative overflow-hidden">
         <div id="map" class="absolute inset-0"></div>
 
         <!-- Location Details Overlay -->
