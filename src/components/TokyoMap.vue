@@ -3,63 +3,130 @@
     <div class="h-16 bg-gray-800 flex items-center justify-center">
       <h1 class="text-white text-2xl font-bold">Tokyo Landmarks</h1>
     </div>
-    <div class="flex-grow relative">
-      <div id="map" class="h-full w-full"></div>
-      <transition
-        enter-active-class="transition-transform duration-300 ease-out"
-        leave-active-class="transition-transform duration-300 ease-in"
-        enter-from-class="translate-y-full sm:translate-x-full"
-        enter-to-class="translate-y-0 sm:translate-x-0"
-        leave-from-class="translate-y-0 sm:translate-x-0"
-        leave-to-class="translate-y-full sm:translate-x-full"
+    <div class="flex-grow relative flex">
+      <!-- Sidebar container -->
+      <div
+        :class="[
+          'transition-all duration-300 ease-in-out z-[1100] flex',
+          isSidebarOpen ? 'w-64' : 'w-8',
+        ]"
       >
+        <!-- Sidebar content -->
         <div
-          v-if="selectedLocation"
-          class="absolute right-0 w-full sm:w-96 bg-white shadow-lg overflow-y-auto transform sm:translate-y-0 z-[1100] sm:top-0 sm:bottom-0 bottom-0 max-h-[50vh] sm:max-h-full flex flex-col"
+          :class="[
+            'h-full bg-white shadow-lg overflow-y-auto',
+            isSidebarOpen ? 'w-full' : 'w-8',
+          ]"
         >
-          <div class="p-6 bg-white sticky top-0 z-10 border-b">
-            <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-bold">{{ selectedLocation.name }}</h2>
+          <div v-if="isSidebarOpen">
+            <div
+              v-for="(group, groupName) in groupedLocations"
+              :key="groupName"
+              class="mb-2"
+            >
               <button
-                @click="closeOverlay"
-                class="text-gray-500 hover:text-gray-700"
+                @click="toggleGroup(groupName)"
+                class="w-full px-4 py-2 text-left font-semibold bg-gray-100 hover:bg-gray-200 focus:outline-none"
+                :aria-expanded="expandedGroups[groupName]"
               >
-                <XIcon class="h-6 w-6" />
+                {{ groupName }}
               </button>
+              <div v-show="expandedGroups[groupName]">
+                <button
+                  v-for="location in group"
+                  :key="location.name"
+                  @click="panToLocation(location)"
+                  class="w-full px-6 py-2 text-left hover:bg-gray-100 focus:outline-none"
+                >
+                  {{ location.name }}
+                </button>
+              </div>
             </div>
           </div>
-          <div class="p-6 overflow-y-auto flex-grow">
-            <img
-              :src="selectedLocation.image"
-              :alt="selectedLocation.name"
-              class="w-full object-cover rounded-lg mb-4"
-            />
-            <p class="text-gray-600 mb-4">{{ selectedLocation.description }}</p>
-            <a
-              :href="selectedLocation.website"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300"
-            >
-              <GlobeIcon class="h-5 w-5 mr-2" />
-              Visit Official Website
-            </a>
-          </div>
         </div>
-      </transition>
+
+        <!-- Sidebar toggle button -->
+        <button
+          @click="toggleSidebar"
+          :class="[
+            'absolute top-2 z-[1101] bg-white p-2 rounded-md shadow-md',
+            isSidebarOpen
+              ? 'right-0 translate-x-full rounded-l-none'
+              : 'left-2',
+          ]"
+          aria-label="Toggle sidebar"
+        >
+          <MenuIcon v-if="!isSidebarOpen" class="h-6 w-6" />
+          <XIcon v-else class="h-6 w-6" />
+        </button>
+      </div>
+
+      <!-- Map container -->
+      <div class="flex-grow relative">
+        <div id="map" class="absolute inset-0"></div>
+
+        <!-- Location Details Overlay -->
+        <transition
+          enter-active-class="transition-transform duration-300 ease-out"
+          leave-active-class="transition-transform duration-300 ease-in"
+          enter-from-class="translate-y-full sm:translate-x-full"
+          enter-to-class="translate-y-0 sm:translate-x-0"
+          leave-from-class="translate-y-0 sm:translate-x-0"
+          leave-to-class="translate-y-full sm:translate-x-full"
+        >
+          <div
+            v-if="selectedLocation"
+            class="absolute right-0 w-full sm:w-96 bg-white shadow-lg overflow-y-auto transform sm:translate-y-0 z-[1100] sm:top-0 sm:bottom-0 bottom-0 max-h-[50vh] sm:max-h-full flex flex-col"
+          >
+            <div class="p-6 bg-white sticky top-0 z-10 border-b">
+              <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">{{ selectedLocation.name }}</h2>
+                <button
+                  @click="closeOverlay"
+                  class="text-gray-500 hover:text-gray-700"
+                  aria-label="Close details"
+                >
+                  <XIcon class="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+              <img
+                :src="selectedLocation.image"
+                :alt="selectedLocation.name"
+                class="w-full object-cover rounded-lg mb-4"
+              />
+              <p class="text-gray-600 mb-4">
+                {{ selectedLocation.description }}
+              </p>
+              <a
+                :href="selectedLocation.website"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300"
+              >
+                <GlobeIcon class="h-5 w-5 mr-2" />
+                Visit Official Website
+              </a>
+            </div>
+          </div>
+        </transition>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, computed } from "vue";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { XIcon, GlobeIcon } from "lucide-vue-next";
+import { XIcon, GlobeIcon, MenuIcon } from "lucide-vue-next";
 
 const selectedLocation = ref(null);
 const map = ref(null);
-const markers = ref([]);
+const markers = ref({});
+const expandedGroups = ref({});
+const isSidebarOpen = ref(true);
 
 const locations = [
   {
@@ -71,6 +138,7 @@ const locations = [
     image:
       "https://images.unsplash.com/photo-1713978504175-f7f4b0aefc3b?h=300&q=100",
     website: "https://www.tokyotower.co.jp/en/",
+    group: "Sightseeing",
   },
   {
     name: "Tokyo Skytree",
@@ -81,45 +149,81 @@ const locations = [
     image:
       "https://images.unsplash.com/photo-1719675531669-5fc58cb0164c?q=100&h=300",
     website: "http://www.tokyo-skytree.jp/en/",
+    group: "Sightseeing",
+  },
+  {
+    name: "Tokyo Disneyland",
+    lat: 35.6329,
+    lng: 139.8804,
+    description:
+      "Tokyo Disneyland is a 115-acre theme park at the Tokyo Disney Resort in Urayasu, Chiba Prefecture, Japan, near Tokyo. It was the first Disney park to be built outside the United States and opened on April 15, 1983.",
+    image:
+      "https://images.unsplash.com/photo-1624601573012-efb68931cc8f?h=300&q=100",
+    website: "https://www.tokyodisneyresort.jp/en/tdl/",
+    group: "Sightseeing",
+  },
+  {
+    name: "The National Museum of Modern Art Tokyo",
+    lat: 35.6905,
+    lng: 139.7546,
+    description:
+      "The National Museum of Modern Art, Tokyo (MOMAT) is Japan's first national art museum. It is known for its collection of 20th-century Japanese art and international art.",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/5/5c/National_Museum_of_Modern_Art%2C_Tokyo.jpg",
+    website: "https://www.momat.go.jp/english/",
+    group: "Art",
   },
 ];
 
-watch(selectedLocation, (newValue) => {
-  if (newValue && map.value) {
+const groupedLocations = computed(() => {
+  return locations.reduce((acc, location) => {
+    if (!acc[location.group]) {
+      acc[location.group] = [];
+    }
+    acc[location.group].push(location);
+    return acc;
+  }, {});
+});
+
+const toggleGroup = (groupName) => {
+  expandedGroups.value[groupName] = !expandedGroups.value[groupName];
+};
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value;
+};
+
+const panToLocation = (location) => {
+  if (map.value) {
     const windowWidth = window.innerWidth;
-    const isMobile = windowWidth < 640; // Assuming 640px as the breakpoint for small screens
+    const isMobile = windowWidth < 640;
+    let offset;
 
     if (isMobile) {
-      const mobileOverlayHeight = window.innerHeight * 0.5; // 50% of viewport height
+      const mobileOverlayHeight = window.innerHeight * 0.5;
       const visibleMapHeight = window.innerHeight - mobileOverlayHeight;
-      const targetY = visibleMapHeight * 0.5; // Position marker at the middle of the visible map area
-
-      const point = map.value.project(L.latLng(newValue.lat, newValue.lng));
-      point.y += targetY;
-      const newCenter = map.value.unproject(point);
-
-      map.value.setView(newCenter, map.value.getZoom(), {
-        animate: true,
-        pan: {
-          duration: 0.5,
-        },
-      });
+      offset = [0, -visibleMapHeight / 4];
     } else {
-      // Desktop logic remains unchanged
       const overlayWidth = 384; // 96 * 4 = 384px (sm:w-96)
-      const point = map.value.project(L.latLng(newValue.lat, newValue.lng));
-      point.x += overlayWidth / 2;
-      const newCenter = map.value.unproject(point);
-
-      map.value.setView(newCenter, map.value.getZoom(), {
-        animate: true,
-        pan: {
-          duration: 0.5,
-        },
-      });
+      offset = [-overlayWidth / 4, 0];
     }
+
+    const point = map.value.project(L.latLng(location.lat, location.lng));
+    point.x += offset[0];
+    point.y += offset[1];
+    const newCenter = map.value.unproject(point);
+
+    map.value.setView(newCenter, 15, {
+      animate: true,
+      pan: {
+        duration: 0.5,
+      },
+    });
+
+    selectedLocation.value = location;
+    markers.value[location.name].openPopup();
   }
-});
+};
 
 const closeOverlay = () => {
   selectedLocation.value = null;
@@ -127,16 +231,15 @@ const closeOverlay = () => {
 
 const handleResize = () => {
   if (selectedLocation.value) {
-    // Trigger the watch function to recenter the map
-    selectedLocation.value = { ...selectedLocation.value };
+    panToLocation(selectedLocation.value);
   }
 };
 
 const togglePopups = (zoomLevel) => {
   if (zoomLevel >= 12) {
-    markers.value.forEach((marker) => marker.openPopup());
+    Object.values(markers.value).forEach((marker) => marker.openPopup());
   } else {
-    markers.value.forEach((marker) => marker.closePopup());
+    Object.values(markers.value).forEach((marker) => marker.closePopup());
   }
 };
 
@@ -155,9 +258,9 @@ onMounted(() => {
     const marker = L.marker([location.lat, location.lng]).addTo(map.value);
     marker.on("click", () => {
       selectedLocation.value = location;
+      panToLocation(location);
     });
 
-    // Add popup with image thumbnail
     const popupContent = `
       <div class="text-center">
         <img src="${location.image}" alt="${location.name}" class="w-32 h-32 object-cover rounded-lg mb-2">
@@ -165,21 +268,20 @@ onMounted(() => {
       </div>
     `;
     marker.bindPopup(popupContent, {
-      maxWidth: 300,
+      maxWidth: 100,
       className: "custom-popup",
       closeOnClick: false,
-      autoClose: true,
+      autoClose: false,
       closeButton: true,
     });
 
-    markers.value.push(marker);
+    markers.value[location.name] = marker;
   });
 
-  // Add zoom event listener
-  // map.value.on("zoomend", () => {
-  //   const currentZoom = map.value.getZoom();
-  //   togglePopups(currentZoom);
-  // });
+  map.value.on("zoomend", () => {
+    const currentZoom = map.value.getZoom();
+    togglePopups(currentZoom);
+  });
 
   window.addEventListener("resize", handleResize);
 });
@@ -210,5 +312,6 @@ onUnmounted(() => {
 <style scoped>
 #map {
   height: 100%;
+  width: 100%;
 }
 </style>
