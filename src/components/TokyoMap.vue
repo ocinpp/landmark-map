@@ -123,7 +123,7 @@ import { XIcon, GlobeIcon, MenuIcon } from "lucide-vue-next";
 const selectedLocation = ref(null);
 const map = ref(null);
 const markers = ref({});
-const expandedGroups = ref({});
+const expandedGroups = ref({ Sightseeing: true, Art: true });
 const isSidebarOpen = ref(true);
 
 const locations = [
@@ -193,31 +193,7 @@ const toggleSidebar = () => {
 
 const panToLocation = (location) => {
   if (map.value) {
-    const windowWidth = window.innerWidth;
-    const isMobile = windowWidth < 640;
-    let offset;
-
-    if (isMobile) {
-      const mobileOverlayHeight = window.innerHeight * 0.5;
-      const visibleMapHeight = window.innerHeight - mobileOverlayHeight;
-      offset = [0, -visibleMapHeight / 4];
-    } else {
-      const overlayWidth = 384; // 96 * 4 = 384px (sm:w-96)
-      offset = [-overlayWidth / 4, 0];
-    }
-
-    const point = map.value.project(L.latLng(location.lat, location.lng));
-    point.x += offset[0];
-    point.y += offset[1];
-    const newCenter = map.value.unproject(point);
-
-    map.value.setView(newCenter, 15, {
-      animate: true,
-      pan: {
-        duration: 0.5,
-      },
-    });
-
+    map.value.flyTo(L.latLng(location.lat, location.lng), 14);
     selectedLocation.value = location;
     markers.value[location.name].openPopup();
   }
@@ -233,19 +209,17 @@ const handleResize = () => {
   }
 };
 
-const togglePopups = (zoomLevel) => {
-  if (zoomLevel >= 12) {
-    Object.values(markers.value).forEach((marker) => marker.openPopup());
-  } else {
-    Object.values(markers.value).forEach((marker) => marker.closePopup());
-  }
-};
-
 onMounted(() => {
-  map.value = L.map("map", { closePopupOnClick: false }).setView(
-    [35.6762, 139.6503],
-    11
-  );
+  map.value = L.map("map", {
+    zoomControl: false,
+    closePopupOnClick: false,
+  }).setView([35.6762, 139.7793], 11);
+
+  L.control
+    .zoom({
+      position: "bottomleft",
+    })
+    .addTo(map.value);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution:
@@ -256,7 +230,6 @@ onMounted(() => {
     const marker = L.marker([location.lat, location.lng]).addTo(map.value);
     marker.on("click", () => {
       selectedLocation.value = location;
-      panToLocation(location);
     });
 
     const popupContent = `
@@ -269,16 +242,11 @@ onMounted(() => {
       maxWidth: 100,
       className: "custom-popup",
       closeOnClick: false,
-      autoClose: false,
+      autoClose: true,
       closeButton: true,
     });
 
     markers.value[location.name] = marker;
-  });
-
-  map.value.on("zoomend", () => {
-    const currentZoom = map.value.getZoom();
-    togglePopups(currentZoom);
   });
 
   window.addEventListener("resize", handleResize);
